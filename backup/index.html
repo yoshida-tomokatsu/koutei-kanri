@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>工程管理システム</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="header">
+        <h1>工程管理システム</h1>
+        <div class="header-controls">
+            <button class="btn-new">+ 新規注文</button>
+            <div class="view-mode-toggle">
+                <button class="view-mode-btn active" data-mode="detailed">詳細表示</button>
+                <button class="view-mode-btn" data-mode="simple">簡易表示</button>
+            </div>
+            <div class="tab-navigation-compact">
+                <button class="tab-button-compact active" data-tab="all">すべて</button>
+                <button class="tab-button-compact" data-tab="in-progress">進行中</button>
+                <button class="tab-button-compact" data-tab="completed">完了</button>
+            </div>
+            <div class="filter-section">
+                <button class="btn-filter" onclick="showFilterModal()">🔍 絞り込み</button>
+            </div>
+            <!-- デバッグ用データベースボタン -->
+            <div class="debug-controls" style="margin-left: 15px;">
+                <button class="btn-new" id="dbTestBtn" style="background-color: #27ae60;">🔌 DB接続テスト</button>
+                <button class="btn-new" id="dbLoadBtn" style="background-color: #f39c12;">📊 DBデータ読み込み</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 絞り込み表示エリア（ヘッダー下に独立配置） -->
+    <div class="filter-display-area" id="filterDisplayArea" style="display: none;">
+        <div class="filter-display-content">
+            <div class="filter-display-header">
+                <span class="filter-status">🔍 絞り込み中</span>
+                <button class="clear-all-filters" onclick="clearFilters()">すべてクリア</button>
+            </div>
+            <div class="active-filters-horizontal" id="activeFiltersHorizontal"></div>
+        </div>
+    </div>
+    
+    <!-- アップロードモーダル -->
+    <div class="upload-modal" id="uploadModal">
+        <div class="upload-dialog">
+            <div class="upload-header">
+                <h3 class="upload-title" id="uploadTitle">ファイルアップロード</h3>
+                <p class="upload-subtitle" id="uploadSubtitle">注文ID: #0001</p>
+            </div>
+            <div class="upload-content">
+                <div class="drag-drop-area" id="dragDropArea">
+                    <div class="drag-icon">📁</div>
+                    <div class="drag-message" id="dragMessage">ファイルをここにドラッグ&ドロップ</div>
+                    <div class="drag-submessage" id="dragSubmessage">または下のボタンでファイルを選択</div>
+                </div>
+                
+                <input type="file" id="modalFileInput" style="display: none;">
+                
+                <div class="upload-buttons">
+                    <button class="btn-select-files" onclick="selectFiles()">📎 ファイルを選択</button>
+                    <button class="btn-cancel-upload" onclick="closeUploadModal()">キャンセル</button>
+                </div>
+                
+                <div class="upload-progress" id="uploadProgress">
+                    <div class="progress-message" id="progressMessage">アップロード中...</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 絞り込みモーダル -->
+    <div class="filter-modal" id="filterModal">
+        <div class="filter-dialog">
+            <div class="filter-header">
+                <h3 class="filter-title">絞り込み検索</h3>
+                <button class="filter-close" onclick="closeFilterModal()">&times;</button>
+            </div>
+            <div class="filter-content">
+                <div class="filter-section">
+                    <label class="filter-label">商品種別</label>
+                    <select class="filter-select" id="filterCategory">
+                        <option value="">すべて</option>
+                        <option value="ポリエステル スカーフ">ポリエステル スカーフ</option>
+                        <option value="シルク スカーフ">シルク スカーフ</option>
+                        <option value="リボン スカーフ">リボン スカーフ</option>
+                        <option value="スカーフタイ">スカーフタイ</option>
+                        <option value="ストール">ストール</option>
+                        <option value="ポケットチーフ">ポケットチーフ</option>
+                    </select>
+                </div>
+                
+                <div class="filter-section">
+                    <label class="filter-label">注文担当</label>
+                    <select class="filter-select" id="filterOrderPerson">
+                        <option value="">すべて</option>
+                    </select>
+                </div>
+                
+                <div class="filter-section">
+                    <label class="filter-label">支払い方法</label>
+                    <select class="filter-select" id="filterPayment">
+                        <option value="">すべて</option>
+                    </select>
+                </div>
+                
+                <div class="filter-section">
+                    <label class="filter-label">プリント工場</label>
+                    <select class="filter-select" id="filterPrintFactory">
+                        <option value="">すべて</option>
+                    </select>
+                </div>
+                
+                <div class="filter-section">
+                    <label class="filter-label">縫製工場</label>
+                    <select class="filter-select" id="filterSewingFactory">
+                        <option value="">すべて</option>
+                    </select>
+                </div>
+                
+                <div class="filter-section">
+                    <label class="filter-label">検品担当</label>
+                    <select class="filter-select" id="filterInspectionPerson">
+                        <option value="">すべて</option>
+                    </select>
+                </div>
+                
+                <div class="filter-section">
+                    <label class="filter-label">配送会社</label>
+                    <select class="filter-select" id="filterShipping">
+                        <option value="">すべて</option>
+                    </select>
+                </div>
+            </div>
+            <div class="filter-buttons">
+                <button class="btn-filter-apply" onclick="applyFilters()">絞り込み実行</button>
+                <button class="btn-filter-clear" onclick="clearFilters()">クリア</button>
+                <button class="btn-filter-cancel" onclick="closeFilterModal()">キャンセル</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- PDFビューアーモーダル -->
+    <div class="pdf-modal" id="pdfModal">
+        <div class="pdf-viewer">
+            <div class="pdf-header">
+                <div class="pdf-title" id="pdfTitle">ファイル管理</div>
+                <div class="pdf-controls">
+                    <button class="pdf-close" onclick="closePDFModal()">&times;</button>
+                </div>
+            </div>
+            <div class="pdf-content">
+                <div class="file-list" id="fileList">
+                    <h3>
+                        ファイル一覧
+                        <span class="file-count" id="fileCount">0件</span>
+                    </h3>
+                    <div style="font-size: 11px; font-weight: normal; color: #6c757d; margin-bottom: 10px;">
+                        ドラッグで並び替え
+                    </div>
+                    <div id="fileListContent">ファイルを読み込み中...</div>
+                </div>
+                <div class="file-viewer" id="fileViewer">
+                    <div class="file-navigation" id="fileNavigation">
+                        <button class="nav-btn" id="prevBtn" onclick="navigateFile(-1)">‹</button>
+                        <button class="nav-btn" id="nextBtn" onclick="navigateFile(1)">›</button>
+                    </div>
+                    <div class="file-info-badge" id="fileInfoBadge">1 / 3</div>
+                    <div class="pdf-placeholder">
+                        <div class="pdf-icon">📄</div>
+                        <div class="pdf-message">ファイルを選択してください</div>
+                        <div class="pdf-info">左のリストからファイルをクリックして表示</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 削除確認ダイアログ -->
+    <div class="delete-confirm" id="deleteConfirm">
+        <div class="delete-dialog">
+            <h3>ファイル削除</h3>
+            <p id="deleteMessage">このファイルを削除しますか？</p>
+            <div class="delete-buttons">
+                <button class="btn-delete-confirm" onclick="confirmDelete()">削除</button>
+                <button class="btn-delete-cancel" onclick="cancelDelete()">キャンセル</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- データベース読み込みローディング画面 -->
+    <div class="db-loading-overlay" id="dbLoadingOverlay">
+        <div class="db-loading-container">
+            <div class="db-loading-spinner">
+                <div class="spinner-ring"></div>
+                <div class="spinner-ring"></div>
+                <div class="spinner-ring"></div>
+            </div>
+            <div class="db-loading-content">
+                <h2 class="db-loading-title">データベース読み込み中</h2>
+                <p class="db-loading-message" id="dbLoadingMessage">接続準備中...</p>
+                <div class="db-loading-progress">
+                    <div class="progress-bar-db">
+                        <div class="progress-fill-db" id="dbProgressFill"></div>
+                    </div>
+                    <div class="progress-percentage" id="dbProgressPercentage">0%</div>
+                </div>
+                <div class="db-loading-details" id="dbLoadingDetails">
+                    <div class="loading-step">
+                        <span class="step-icon" id="stepIcon1">⏳</span>
+                        <span class="step-text" id="stepText1">データベース接続中...</span>
+                    </div>
+                </div>
+                <button class="btn-cancel-loading" id="cancelLoadingBtn" onclick="cancelDatabaseLoading()">
+                    キャンセル
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <!-- 詳細表示テーブル -->
+        <div class="process-table detailed-view" id="detailedView">
+            <table>
+                <!-- メインヘッダー -->
+                <thead>
+                    <tr class="table-header">
+                        <th rowspan="2" style="width: 240px;">注文情報</th>
+                        <th rowspan="2" style="width: 80px;">ファイル</th>
+                        <th colspan="4" class="process-order">注文対応</th>
+                        <th colspan="3" class="process-print">プリント</th>
+                        <th colspan="3" class="process-sewing">縫製</th>
+                        <th colspan="2" class="process-inspection">検品・発送</th>
+                        <th rowspan="2" style="width: 280px;">備考</th>
+                    </tr>
+                    <tr class="process-header">
+                        <th>注文担当</th>
+                        <th>イメージ送付</th>
+                        <th>支払い方法</th>
+                        <th>支払い完了</th>
+                        <th>プリント依頼日</th>
+                        <th>プリント工場</th>
+                        <th>プリント納期</th>
+                        <th>縫製依頼日</th>
+                        <th>縫製工場</th>
+                        <th>縫製納期</th>
+                        <th>検品担当</th>
+                        <th>発送日<br>配送会社</th>
+                    </tr>
+                </thead>
+                
+                <!-- データ行（JavaScriptから動的生成） -->
+                <tbody id="orders-table-body">
+                    <tr>
+                        <td colspan="15" class="loading">データを読み込み中...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- 簡易表示テーブル -->
+        <div class="simple-table-container simple-view" id="simpleView" style="display: none;">
+            <div style="padding: 20px; background-color: white;">
+                <table class="simple-table" id="simpleTable">
+                    <thead>
+                        <tr class="simple-header">
+                            <th>ステータス</th>
+                            <th>商品種別</th>
+                            <th>注文ID</th>
+                            <th>お名前</th>
+                            <th>会社名</th>
+                            <th>注文日</th>
+                            <th>納品日</th>
+                            <th>注文担当</th>
+                            <th>イメージ送付</th>
+                            <th>支払い方法</th>
+                            <th>支払い完了</th>
+                            <th>プリント依頼</th>
+                            <th>プリント工場</th>
+                            <th>プリント納期</th>
+                            <th>縫製依頼</th>
+                            <th>縫製工場</th>
+                            <th>縫製納期</th>
+                            <th>検品担当</th>
+                            <th>発送日</th>
+                            <th>配送会社</th>
+                            <th>備考</th>
+                        </tr>
+                    </thead>
+                    <tbody id="simple-table-body">
+                        <tr>
+                            <td colspan="21" class="loading">データを読み込み中...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- JavaScript Files - 基本的なファイルのみ -->
+    <script src="config.js"></script>
+    <script src="data.js"></script>
+    <script src="api.js"></script>
+    <script src="view-mode.js"></script>
+    <script src="filter-modal.js"></script>
+    <script src="upload-modal.js"></script>
+    <script src="file-manager.js"></script>
+    <script src="pdf-viewer.js"></script>
+    <script src="drag-drop.js"></script>
+    <script src="script.js"></script>
+    
+    <style>
+    /* データベース読み込みローディング画面 */
+    .db-loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(8px);
+        z-index: 9999;
+        display: none;
+        justify-content: center;
+        align-items: center;
+        animation: fadeIn 0.3s ease-out;
+    }
+
+    .db-loading-overlay.show {
+        display: flex;
+    }
+
+    .db-loading-container {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 20px;
+        padding: 40px;
+        max-width: 500px;
+        width: 90%;
+        text-align: center;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        color: white;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .db-loading-container::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+        animation: shimmer 3s infinite;
+        pointer-events: none;
+    }
+
+    .db-loading-spinner {
+        position: relative;
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 30px;
+    }
+
+    .spinner-ring {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        border: 3px solid transparent;
+        border-top: 3px solid rgba(255, 255, 255, 0.9);
+        border-radius: 50%;
+        animation: spin 1.5s linear infinite;
+    }
+
+    .spinner-ring:nth-child(1) {
+        animation-delay: 0s;
+        border-top-color: #00d4ff;
+    }
+
+    .spinner-ring:nth-child(2) {
+        animation-delay: 0.3s;
+        border-top-color: #ff6b6b;
+        width: 90%;
+        height: 90%;
+        top: 5%;
+        left: 5%;
+    }
+
+    .spinner-ring:nth-child(3) {
+        animation-delay: 0.6s;
+        border-top-color: #4ecdc4;
+        width: 80%;
+        height: 80%;
+        top: 10%;
+        left: 10%;
+    }
+
+    .db-loading-title {
+        font-size: 24px;
+        font-weight: 600;
+        margin-bottom: 15px;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    .db-loading-message {
+        font-size: 16px;
+        margin-bottom: 25px;
+        opacity: 0.9;
+        min-height: 24px;
+    }
+
+    .db-loading-progress {
+        margin-bottom: 25px;
+    }
+
+    .progress-bar-db {
+        width: 100%;
+        height: 8px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+        overflow: hidden;
+        margin-bottom: 10px;
+        position: relative;
+    }
+
+    .progress-fill-db {
+        height: 100%;
+        background: linear-gradient(90deg, #00d4ff, #ff6b6b, #4ecdc4);
+        background-size: 200% 100%;
+        border-radius: 4px;
+        width: 0%;
+        transition: width 0.5s ease;
+        animation: gradient-move 2s ease infinite;
+    }
+
+    .progress-percentage {
+        font-size: 14px;
+        font-weight: 600;
+        opacity: 0.9;
+    }
+
+    .db-loading-details {
+        text-align: left;
+        margin-bottom: 25px;
+    }
+
+    .loading-step {
+        display: flex;
+        align-items: center;
+        margin-bottom: 8px;
+        padding: 8px 12px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .loading-step.active {
+        background: rgba(255, 255, 255, 0.2);
+        transform: translateX(5px);
+    }
+
+    .loading-step.completed {
+        background: rgba(76, 175, 80, 0.3);
+    }
+
+    .step-icon {
+        margin-right: 12px;
+        font-size: 16px;
+        min-width: 20px;
+    }
+
+    .step-text {
+        font-size: 14px;
+        flex: 1;
+    }
+
+    .btn-cancel-loading {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        padding: 10px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .btn-cancel-loading:hover {
+        background: rgba(255, 255, 255, 0.3);
+        border-color: rgba(255, 255, 255, 0.5);
+        transform: translateY(-2px);
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: scale(0.9); }
+        to { opacity: 1; transform: scale(1); }
+    }
+
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+
+    @keyframes shimmer {
+        0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+        100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+    }
+
+    @keyframes gradient-move {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+
+    .step-icon.loading {
+        animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+        0% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.7; transform: scale(1.1); }
+        100% { opacity: 1; transform: scale(1); }
+    }
+    </style>
+    
+    <!-- デバッグ用データベース機能（ローディング機能付き） -->
+    <script>
+        // データベースローディング画面制御
+        let dbLoadingCancelled = false;
+        let dbLoadingTimeout = null;
+
+        function showDatabaseLoading() {
+            dbLoadingCancelled = false;
+            const overlay = document.getElementById('dbLoadingOverlay');
+            if (overlay) {
+                resetLoadingState();
+                overlay.classList.add('show');
+                dbLoadingTimeout = setTimeout(() => {
+                    if (!dbLoadingCancelled) {
+                        showLoadingError('読み込みがタイムアウトしました');
+                    }
+                }, 30000);
+            }
+        }
+
+        function hideDatabaseLoading() {
+            const overlay = document.getElementById('dbLoadingOverlay');
+            if (overlay) {
+                overlay.classList.remove('show');
+                if (dbLoadingTimeout) {
+                    clearTimeout(dbLoadingTimeout);
+                    dbLoadingTimeout = null;
+                }
+            }
+        }
+
+        function resetLoadingState() {
+            updateLoadingProgress(0, '接続準備中...');
+            const details = document.getElementById('dbLoadingDetails');
+            if (details) {
+                details.innerHTML = `
+                    <div class="loading-step" id="step1">
+                        <span class="step-icon loading" id="stepIcon1">⏳</span>
+                        <span class="step-text" id="stepText1">データベース接続中...</span>
+                    </div>
+                `;
+            }
+        }
+
+        function updateLoadingProgress(percentage, message) {
+            const progressFill = document.getElementById('dbProgressFill');
+            const progressPercentage = document.getElementById('dbProgressPercentage');
+            const loadingMessage = document.getElementById('dbLoadingMessage');
+            
+            if (progressFill) progressFill.style.width = percentage + '%';
+            if (progressPercentage) progressPercentage.textContent = Math.round(percentage) + '%';
+            if (loadingMessage && message) loadingMessage.textContent = message;
+        }
+
+        function addLoadingStep(stepId, icon, text, status = 'active') {
+            const details = document.getElementById('dbLoadingDetails');
+            if (details) {
+                const stepHTML = `
+                    <div class="loading-step ${status}" id="${stepId}">
+                        <span class="step-icon ${status}" id="${stepId}Icon">${icon}</span>
+                        <span class="step-text" id="${stepId}Text">${text}</span>
+                    </div>
+                `;
+                details.insertAdjacentHTML('beforeend', stepHTML);
+            }
+        }
+
+        function completeLoadingStep(stepId, completedText = null) {
+            const stepElement = document.getElementById(stepId);
+            const iconElement = document.getElementById(stepId + 'Icon');
+            const textElement = document.getElementById(stepId + 'Text');
+            
+            if (stepElement) stepElement.className = 'loading-step completed';
+            if (iconElement) {
+                iconElement.textContent = '✅';
+                iconElement.className = 'step-icon completed';
+            }
+            if (textElement && completedText) textElement.textContent = completedText;
+        }
+
+        function showLoadingError(errorMessage) {
+            updateLoadingProgress(0, 'エラーが発生しました');
+            const details = document.getElementById('dbLoadingDetails');
+            if (details) {
+                details.innerHTML = `
+                    <div class="loading-step" style="background: rgba(244, 67, 54, 0.3);">
+                        <span class="step-icon">❌</span>
+                        <span class="step-text">${errorMessage}</span>
+                    </div>
+                `;
+            }
+            setTimeout(() => hideDatabaseLoading(), 3000);
+        }
+
+        function cancelDatabaseLoading() {
+            dbLoadingCancelled = true;
+            hideDatabaseLoading();
+            alert('データベース読み込みをキャンセルしました');
+        }
+
+        async function loadDatabaseWithProgress() {
+            showDatabaseLoading();
+            
+            try {
+                // ステップ1: 接続テスト
+                updateLoadingProgress(10, 'データベース接続テスト中...');
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                if (dbLoadingCancelled) return;
+                
+                const testResponse = await fetch('./debug-database-api.php?action=test_connection');
+                const testResult = await testResponse.json();
+                
+                if (!testResult.success) {
+                    throw new Error(testResult.message);
+                }
+                
+                completeLoadingStep('step1', 'データベース接続成功');
+                
+                // ステップ2: データ件数確認
+                addLoadingStep('step2', '⏳', 'データ件数を確認中...', 'active');
+                updateLoadingProgress(30, 'データ件数を確認中...');
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                if (dbLoadingCancelled) return;
+                
+                completeLoadingStep('step2', `${testResult.table_info?.total_records || 0}件のデータを確認`);
+                
+                // ステップ3: データ取得
+                addLoadingStep('step3', '⏳', 'データを取得中...', 'active');
+                updateLoadingProgress(50, 'データを取得中...');
+                
+                if (dbLoadingCancelled) return;
+                
+                const response = await fetch('./debug-database-api.php?action=get_orders&limit=10');
+                const result = await response.json();
+                
+                if (!result.success) {
+                    throw new Error(result.message);
+                }
+                
+                completeLoadingStep('step3', `${result.count || 0}件のデータを取得`);
+                
+                // ステップ4: データ変換
+                addLoadingStep('step4', '⏳', 'データを変換中...', 'active');
+                updateLoadingProgress(70, 'データを変換中...');
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                if (dbLoadingCancelled) return;
+                
+                completeLoadingStep('step4', 'データ変換完了');
+                
+                // ステップ5: テーブル構築
+                addLoadingStep('step5', '⏳', 'テーブルを構築中...', 'active');
+                updateLoadingProgress(90, 'テーブルを構築中...');
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                if (dbLoadingCancelled) return;
+                
+                window.ordersData = result.orders;
+                buildOrdersTable();
+                
+                completeLoadingStep('step5', 'テーブル構築完了');
+                
+                // 完了
+                updateLoadingProgress(100, '読み込み完了！');
+                await new Promise(resolve => setTimeout(resolve, 800));
+                
+                setTimeout(() => {
+                    hideDatabaseLoading();
+                    alert(`✅ データベースから${result.count}件のデータを読み込みました`);
+                }, 100);
+                
+            } catch (error) {
+                if (!dbLoadingCancelled) {
+                    showLoadingError(error.message);
+                }
+            }
+        }
+
+        // デバッグ用データベース機能
+        document.addEventListener('DOMContentLoaded', function() {
+            const dbTestBtn = document.getElementById('dbTestBtn');
+            const dbLoadBtn = document.getElementById('dbLoadBtn');
+            
+            // DB接続テストボタン
+            dbTestBtn.addEventListener('click', async function() {
+                dbTestBtn.disabled = true;
+                dbTestBtn.textContent = '🔄 テスト中...';
+                
+                try {
+                    const response = await fetch('./debug-database-api.php?action=test_connection');
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        const info = result.table_info || {};
+                        alert('データベース接続テスト成功！\\n' + 
+                              `データベース: ${result.database}\\n` +
+                              `テーブル存在: ${result.table_exists ? 'あり' : 'なし'}\\n` +
+                              `レコード数: ${info.total_records || 0}件`);
+                    } else {
+                        alert('データベース接続テスト失敗:\\n' + result.message);
+                    }
+                } catch (error) {
+                    alert('接続テスト中にエラーが発生しました:\\n' + error.message);
+                } finally {
+                    dbTestBtn.disabled = false;
+                    dbTestBtn.textContent = '🔌 DB接続テスト';
+                }
+            });
+            
+            // DBデータ読み込みボタン（ローディング機能付き）
+            dbLoadBtn.addEventListener('click', function() {
+                loadDatabaseWithProgress();
+            });
+            
+            console.log('✅ デバッグ用データベース機能（ローディング付き）が初期化されました');
+        });
+    </script>
+</body>
+</html>

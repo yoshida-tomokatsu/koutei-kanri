@@ -1,0 +1,25 @@
+# 工程管理システム - 検索エンジンクロール拒否
+# 個人情報保護のため全てのアクセスを拒否
+
+User-agent: *
+Disallow: /
+
+# 特に重要なディレクトリを明示的に拒否
+Disallow: /uploads/
+Disallow: /aforms-pdf/
+Disallow: /wp-content/
+Disallow: /logs/
+Disallow: /backup/
+
+# 個人情報を含むファイルを拒否
+Disallow: /*.php
+Disallow: /*.html
+Disallow: /*.sql
+Disallow: /*.csv
+Disallow: /*.json
+Disallow: /*.log
+
+# サイトマップなし（検索エンジンに情報を提供しない）
+# Sitemap: 
+
+# 最終更新: 2025-01-07 (緊急セキュリティ対応) 

@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>API直接テスト - update_content</title>
+    <style>
+        body { font-family: monospace; margin: 20px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        .json { background: #f5f5f5; padding: 10px; white-space: pre-wrap; font-size: 12px; }
+        .button { margin: 5px; padding: 10px; background: #007cba; color: white; border: none; cursor: pointer; }
+        .button:hover { background: #005a87; }
+        .success { color: green; }
+        .error { color: red; }
+        .log { background: #f9f9f9; padding: 10px; margin: 10px 0; border-left: 4px solid #ccc; }
+    </style>
+</head>
+<body>
+    <h1>API直接テスト - update_content</h1>
+    
+    <div class="section">
+        <h2>1. API接続テスト</h2>
+        <button class="button" onclick="testConnection()">接続テスト</button>
+        <div id="connectionResult"></div>
+    </div>
+    
+    <div class="section">
+        <h2>2. update_content テスト</h2>
+        <p>注文ID 1313のcontentフィールドを更新してテストします</p>
+        <button class="button" onclick="testUpdateContent()">update_contentテスト</button>
+        <div id="updateResult"></div>
+    </div>
+    
+    <div class="section">
+        <h2>3. 詳細ログ</h2>
+        <button class="button" onclick="clearLogs()">ログクリア</button>
+        <div id="detailLogs"></div>
+    </div>
+
+    <script>
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logDiv = document.getElementById('detailLogs');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log ${type}`;
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            logDiv.appendChild(logEntry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        function clearLogs() {
+            document.getElementById('detailLogs').innerHTML = '';
+        }
+        
+        async function testConnection() {
+            log('🔄 API接続テスト開始');
+            const resultDiv = document.getElementById('connectionResult');
+            
+            try {
+                const response = await fetch('editable-orders-api.php?action=debug_test');
+                const responseText = await response.text();
+                
+                log(`📡 レスポンス status: ${response.status}`);
+                log(`📡 レスポンス headers: ${JSON.stringify([...response.headers])}`);
+                log(`📡 レスポンス内容: ${responseText}`);
+                
+                if (response.ok && responseText.trim()) {
+                    try {
+                        const result = JSON.parse(responseText);
+                        resultDiv.innerHTML = `
+                            <div class="success">✅ API接続成功</div>
+                            <div class="json">${JSON.stringify(result, null, 2)}</div>
+                        `;
+                        log('✅ API接続テスト成功', 'success');
+                    } catch (parseError) {
+                        resultDiv.innerHTML = `
+                            <div class="error">❌ JSON解析エラー</div>
+                            <div>レスポンス: ${responseText}</div>
+                        `;
+                        log(`❌ JSON解析エラー: ${parseError.message}`, 'error');
+                    }
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">❌ API接続失敗</div>
+                        <div>Status: ${response.status}</div>
+                        <div>Response: ${responseText}</div>
+                    `;
+                    log(`❌ API接続失敗: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">❌ 接続エラー: ${error.message}</div>
+                `;
+                log(`❌ 接続エラー: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testUpdateContent() {
+            log('🔄 update_content テスト開始');
+            const resultDiv = document.getElementById('updateResult');
+            
+            // テスト用のcontentデータ
+            const testContent = {
+                attrs: [
+                    { name: 'カテゴリ', value: 'テストカテゴリ' },
+                    { name: '顧客名', value: 'テスト顧客' },
+                    { name: '会社名', value: 'テスト会社' },
+                    { name: '納品日', value: '2025-01-10' },
+                    { name: '制作事例掲載許可', value: 'する' }
+                ]
+            };
+            
+            const requestData = {
+                action: 'update_content',
+                order_id: 1313,
+                content: testContent,
+                edited_by: 'test_user'
+            };
+            
+            log(`📤 送信データ: ${JSON.stringify(requestData, null, 2)}`);
+            
+            try {
+                const response = await fetch('editable-orders-api.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Cache-Control': 'no-cache'
+                    },
+                    body: JSON.stringify(requestData)
+                });
+                
+                log(`📡 レスポンス status: ${response.status}`);
+                log(`📡 レスポンス headers: ${JSON.stringify([...response.headers])}`);
+                
+                const responseText = await response.text();
+                log(`📡 レスポンス内容: ${responseText}`);
+                
+                if (!responseText || responseText.trim() === '') {
+                    resultDiv.innerHTML = `
+                        <div class="error">❌ 空のレスポンス</div>
+                        <div>APIから空のレスポンスが返されました</div>
+                    `;
+                    log('❌ 空のレスポンスが返されました', 'error');
+                    return;
+                }
+                
+                try {
+                    const result = JSON.parse(responseText);
+                    if (result.success) {
+                        resultDiv.innerHTML = `
+                            <div class="success">✅ update_content成功</div>
+                            <div class="json">${JSON.stringify(result, null, 2)}</div>
+                        `;
+                        log('✅ update_content テスト成功', 'success');
+                    } else {
+                        resultDiv.innerHTML = `
+                            <div class="error">❌ update_content失敗</div>
+                            <div class="json">${JSON.stringify(result, null, 2)}</div>
+                        `;
+                        log(`❌ update_content失敗: ${result.message}`, 'error');
+                    }
+                } catch (parseError) {
+                    resultDiv.innerHTML = `
+                        <div class="error">❌ JSON解析エラー</div>
+                        <div>Parse Error: ${parseError.message}</div>
+                        <div>Response: ${responseText}</div>
+                    `;
+                    log(`❌ JSON解析エラー: ${parseError.message}`, 'error');
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">❌ リクエストエラー: ${error.message}</div>
+                `;
+                log(`❌ リクエストエラー: ${error.message}`, 'error');
+            }
+        }
+        
+        // ページ読み込み時に接続テストを実行
+        window.addEventListener('DOMContentLoaded', function() {
+            log('📄 ページ読み込み完了');
+            setTimeout(() => {
+                testConnection();
+            }, 500);
+        });
+    </script>
+</body>
+</html> 

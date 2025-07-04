@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>カテゴリ色テスト</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .test-container {
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .test-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+        .test-item {
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .test-label {
+            min-width: 150px;
+            font-weight: bold;
+        }
+        .debug-info {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🎨 カテゴリ色テスト</h1>
+        
+        <div class="test-section">
+            <div class="test-title">1. 基本的なカテゴリ色テスト</div>
+            
+            <div class="test-item">
+                <span class="test-label">ポリエステル スカーフ:</span>
+                <select class="category-dropdown category-poli">
+                    <option value="ポリエステル スカーフ" selected>ポリエステル スカーフ</option>
+                </select>
+            </div>
+            
+            <div class="test-item">
+                <span class="test-label">シルク スカーフ:</span>
+                <select class="category-dropdown category-silk">
+                    <option value="シルク スカーフ" selected>シルク スカーフ</option>
+                </select>
+            </div>
+            
+            <div class="test-item">
+                <span class="test-label">リボン スカーフ:</span>
+                <select class="category-dropdown category-ribbon">
+                    <option value="リボン スカーフ" selected>リボン スカーフ</option>
+                </select>
+            </div>
+            
+            <div class="test-item">
+                <span class="test-label">スカーフタイ:</span>
+                <select class="category-dropdown category-tie">
+                    <option value="スカーフタイ" selected>スカーフタイ</option>
+                </select>
+            </div>
+            
+            <div class="test-item">
+                <span class="test-label">ストール:</span>
+                <select class="category-dropdown category-stole">
+                    <option value="ストール" selected>ストール</option>
+                </select>
+            </div>
+            
+            <div class="test-item">
+                <span class="test-label">ポケットチーフ:</span>
+                <select class="category-dropdown category-chief">
+                    <option value="ポケットチーフ" selected>ポケットチーフ</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <div class="test-title">2. 動的テスト</div>
+            <div class="test-item">
+                <span class="test-label">動的カテゴリ選択:</span>
+                <select id="dynamicTest" class="category-dropdown">
+                    <option value="">選択してください</option>
+                    <option value="ポリエステル スカーフ">ポリエステル スカーフ</option>
+                    <option value="シルク スカーフ">シルク スカーフ</option>
+                    <option value="リボン スカーフ">リボン スカーフ</option>
+                    <option value="スカーフタイ">スカーフタイ</option>
+                    <option value="ストール">ストール</option>
+                    <option value="ポケットチーフ">ポケットチーフ</option>
+                </select>
+                <button onclick="applyColor()">色を適用</button>
+                <button onclick="debugElement()">デバッグ</button>
+            </div>
+            <div id="debugOutput" class="debug-info" style="display: none;"></div>
+        </div>
+        
+        <div class="test-section">
+            <div class="test-title">3. 実際のテーブル行テスト</div>
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr class="order-row">
+                    <td class="order-info">
+                        <div class="order-header">
+                            <span class="order-number">注文ID：#0001</span>
+                            <select class="category-dropdown" id="tableTest">
+                                <option value="ポリエステル スカーフ">ポリエステル スカーフ</option>
+                                <option value="シルク スカーフ">シルク スカーフ</option>
+                                <option value="リボン スカーフ">リボン スカーフ</option>
+                                <option value="スカーフタイ" selected>スカーフタイ</option>
+                                <option value="ストール">ストール</option>
+                                <option value="ポケットチーフ">ポケットチーフ</option>
+                            </select>
+                        </div>
+                    </td>
+                </tr>
+            </table>
+            <button onclick="testTableRow()">テーブル行の色を適用</button>
+        </div>
+        
+        <div class="test-section">
+            <div class="test-title">4. 現在のメインページ状況確認</div>
+            <button onclick="checkMainPage()">メインページのカテゴリ要素を確認</button>
+            <div id="mainPageDebug" class="debug-info" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script src="table-manager.js"></script>
+    <script>
+        // 動的テスト
+        function applyColor() {
+            const select = document.getElementById('dynamicTest');
+            if (window.updateCategoryColor && typeof window.updateCategoryColor === 'function') {
+                window.updateCategoryColor(select);
+                console.log('色を適用しました:', select.value, select.className);
+            } else {
+                console.error('updateCategoryColor関数が見つかりません');
+            }
+        }
+        
+        // デバッグ情報表示
+        function debugElement() {
+            const select = document.getElementById('dynamicTest');
+            const output = document.getElementById('debugOutput');
+            
+            const info = {
+                'value': select.value,
+                'className': select.className,
+                'classList': Array.from(select.classList),
+                'style.backgroundColor': select.style.backgroundColor,
+                'style.color': select.style.color,
+                'computedStyle.backgroundColor': getComputedStyle(select).backgroundColor,
+                'computedStyle.color': getComputedStyle(select).color,
+                'updateCategoryColor関数': typeof window.updateCategoryColor
+            };
+            
+            output.style.display = 'block';
+            output.innerHTML = '<pre>' + JSON.stringify(info, null, 2) + '</pre>';
+        }
+        
+        // テーブル行テスト
+        function testTableRow() {
+            const select = document.getElementById('tableTest');
+            if (window.updateCategoryColor && typeof window.updateCategoryColor === 'function') {
+                window.updateCategoryColor(select);
+                console.log('テーブル行の色を適用しました:', select.value, select.className);
+            } else {
+                console.error('updateCategoryColor関数が見つかりません');
+            }
+        }
+        
+        // メインページ確認
+        function checkMainPage() {
+            const output = document.getElementById('mainPageDebug');
+            
+            // メインページのiframeまたは別ウィンドウをチェック
+            const info = {
+                'updateCategoryColor関数の存在': typeof window.updateCategoryColor,
+                'table-manager.jsの読み込み': !!window.updateCategoryColor,
+                'styles.cssの読み込み確認': !!document.querySelector('link[href*="styles.css"]'),
+                'カテゴリクラスのCSS確認': {
+                    'category-poli': !!getComputedStyle(document.createElement('div')).getPropertyValue('--category-poli') || 'CSS確認中...',
+                    'category-silk': 'CSS確認中...',
+                    'category-ribbon': 'CSS確認中...',
+                    'category-tie': 'CSS確認中...',
+                    'category-stole': 'CSS確認中...',
+                    'category-chief': 'CSS確認中...'
+                }
+            };
+            
+            output.style.display = 'block';
+            output.innerHTML = '<pre>' + JSON.stringify(info, null, 2) + '</pre>';
+        }
+        
+        // ページ読み込み時の初期化
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🎨 カテゴリ色テストページ読み込み完了');
+            
+            // 初期色適用テスト
+            setTimeout(() => {
+                document.querySelectorAll('.category-dropdown').forEach(select => {
+                    if (window.updateCategoryColor && typeof window.updateCategoryColor === 'function') {
+                        window.updateCategoryColor(select);
+                    }
+                });
+            }, 100);
+        });
+    </script>
+</body>
+</html> 

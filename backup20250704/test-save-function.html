@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>保存機能テスト - メインシステム同様</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .test-container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        input[type="text"], input[type="date"], select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        
+        button:hover {
+            background-color: #0056b3;
+        }
+        
+        .test-button {
+            background-color: #28a745;
+        }
+        
+        .test-button:hover {
+            background-color: #1e7e34;
+        }
+        
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .debug-section {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        
+        .debug-section h3 {
+            margin-top: 0;
+            color: #495057;
+        }
+        
+        .debug-button {
+            background-color: #6c757d;
+            margin-bottom: 10px;
+        }
+        
+        .debug-button:hover {
+            background-color: #545b62;
+        }
+        
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        .json { background: #f5f5f5; padding: 10px; white-space: pre-wrap; font-size: 12px; }
+        .field { margin: 5px 0; }
+        .missing { color: red; }
+        .found { color: green; }
+    </style>
+</head>
+<body>
+    <h1>保存機能テスト - メインシステム同様</h1>
+    
+    <div class="section">
+        <h2>1. メインシステムと同じAPIを使用してデータ取得</h2>
+        <button class="button" onclick="fetchDataLikeMainSystem()">メインシステム方式でデータ取得</button>
+        <div id="mainSystemResult"></div>
+    </div>
+    
+    <div class="section">
+        <h2>2. 保存機能テスト</h2>
+        <button class="button" onclick="testSaveFunction()">保存テスト実行</button>
+        <div id="saveResult"></div>
+    </div>
+    
+    <div class="section">
+        <h2>3. 保存後の再取得テスト</h2>
+        <button class="button" onclick="testAfterSave()">保存→再取得テスト</button>
+        <div id="afterSaveResult"></div>
+    </div>
+
+    <script>
+        let currentData = null;
+        
+        // メインシステムと同じ方法でデータを取得
+        async function fetchDataLikeMainSystem() {
+            try {
+                // メインシステムと同じAPIコール
+                const response = await fetch('editable-orders-api.php?action=get_editable_orders&limit=999&page=1');
+                const result = await response.json();
+                
+                console.log('メインシステム方式API応答:', result);
+                
+                if (result.success && result.data.orders) {
+                    const order1313 = result.data.orders.find(o => parseInt(o.id) === 1313);
+                    currentData = order1313;
+                    
+                    if (order1313) {
+                        document.getElementById('mainSystemResult').innerHTML = `
+                            <div class="found">✅ 注文ID 1313 が見つかりました（メインシステム方式）</div>
+                            <div><strong>取得時刻:</strong> ${new Date().toLocaleString()}</div>
+                            <div><strong>データ構造:</strong></div>
+                            <div class="json">${JSON.stringify(order1313, null, 2)}</div>
+                        `;
+                    } else {
+                        document.getElementById('mainSystemResult').innerHTML = `
+                            <div class="missing">❌ 注文ID 1313 が見つかりません（メインシステム方式）</div>
+                            <div>取得されたデータ件数: ${result.data.orders.length}</div>
+                            <div>IDリスト: ${result.data.orders.map(o => o.id).slice(0, 10).join(', ')}...</div>
+                        `;
+                    }
+                } else {
+                    document.getElementById('mainSystemResult').innerHTML = `
+                        <div class="missing">❌ API エラー: ${result.message}</div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('mainSystemResult').innerHTML = `
+                    <div class="missing">❌ 通信エラー: ${error.message}</div>
+                `;
+            }
+        }
+        
+        // 保存機能をテスト
+        async function testSaveFunction() {
+            if (!currentData) {
+                document.getElementById('saveResult').innerHTML = '<div class="error">まずデータを取得してください</div>';
+                return;
+            }
+            
+            try {
+                const saveData = {
+                    action: 'save_order',
+                    order_id: '1313',
+                    category: 'テストカテゴリ',
+                    customer_name: 'テスト顧客名_' + Date.now(),
+                    company_name: 'テスト会社名_' + Date.now(),
+                    delivery_date: '2025-12-31',
+                    publication_permission: 'する'
+                };
+                
+                const response = await fetch('editable-orders-api.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Cache-Control': 'no-cache'
+                    },
+                    body: JSON.stringify(saveData)
+                });
+                
+                const result = await response.json();
+                
+                document.getElementById('saveResult').innerHTML = `
+                    <div class="${result.success ? 'success' : 'error'}">
+                        ${result.success ? '✅' : '❌'} 保存結果: ${result.message}
+                    </div>
+                    <div><strong>保存時刻:</strong> ${new Date().toLocaleString()}</div>
+                    <div><strong>送信データ:</strong></div>
+                    <div class="json">${JSON.stringify(saveData, null, 2)}</div>
+                    <div><strong>応答データ:</strong></div>
+                    <div class="json">${JSON.stringify(result, null, 2)}</div>
+                `;
+                
+            } catch (error) {
+                document.getElementById('saveResult').innerHTML = `
+                    <div class="error">❌ 保存エラー: ${error.message}</div>
+                `;
+            }
+        }
+        
+        // 保存後の再取得テスト
+        async function testAfterSave() {
+            try {
+                // 1. 保存前のデータを取得
+                const beforeResponse = await fetch('editable-orders-api.php?action=get_editable_orders&limit=999&page=1&t=' + Date.now());
+                const beforeResult = await beforeResponse.json();
+                const beforeOrder = beforeResult.data.orders.find(o => parseInt(o.id) === 1313);
+                
+                // 2. 保存実行
+                const saveData = {
+                    action: 'save_order',
+                    order_id: '1313',
+                    category: 'テストカテゴリ',
+                    customer_name: 'テスト顧客名_' + Date.now(),
+                    company_name: 'テスト会社名_' + Date.now(),
+                    delivery_date: '2025-12-31',
+                    publication_permission: 'する'
+                };
+                
+                const saveResponse = await fetch('editable-orders-api.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Cache-Control': 'no-cache'
+                    },
+                    body: JSON.stringify(saveData)
+                });
+                
+                const saveResult = await saveResponse.json();
+                
+                // 3. 保存後のデータを取得（少し待ってから）
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                const afterResponse = await fetch('editable-orders-api.php?action=get_editable_orders&limit=999&page=1&t=' + Date.now());
+                const afterResult = await afterResponse.json();
+                const afterOrder = afterResult.data.orders.find(o => parseInt(o.id) === 1313);
+                
+                // 4. 比較結果を表示
+                document.getElementById('afterSaveResult').innerHTML = `
+                    <div class="${saveResult.success ? 'success' : 'error'}">
+                        ${saveResult.success ? '✅' : '❌'} 保存結果: ${saveResult.message}
+                    </div>
+                    <div><strong>テスト時刻:</strong> ${new Date().toLocaleString()}</div>
+                    
+                    <h3>保存前のデータ:</h3>
+                    <div class="json">${JSON.stringify(beforeOrder, null, 2)}</div>
+                    
+                    <h3>保存後のデータ:</h3>
+                    <div class="json">${JSON.stringify(afterOrder, null, 2)}</div>
+                    
+                    <h3>変更の確認:</h3>
+                    <div class="field">
+                        顧客名: ${beforeOrder?.customer || '(なし)'} → ${afterOrder?.customer || '(なし)'} 
+                        ${beforeOrder?.customer !== afterOrder?.customer ? '<span class="found">✅変更あり</span>' : '<span class="error">❌変更なし</span>'}
+                    </div>
+                    <div class="field">
+                        会社名: ${beforeOrder?.company_name || '(なし)'} → ${afterOrder?.company_name || '(なし)'} 
+                        ${beforeOrder?.company_name !== afterOrder?.company_name ? '<span class="found">✅変更あり</span>' : '<span class="error">❌変更なし</span>'}
+                    </div>
+                    <div class="field">
+                        編集フラグ: ${beforeOrder?._editable_info?.is_edited || false} → ${afterOrder?._editable_info?.is_edited || false}
+                        ${beforeOrder?._editable_info?.is_edited !== afterOrder?._editable_info?.is_edited ? '<span class="found">✅変更あり</span>' : '<span class="error">❌変更なし</span>'}
+                    </div>
+                `;
+                
+            } catch (error) {
+                document.getElementById('afterSaveResult').innerHTML = `
+                    <div class="error">❌ テストエラー: ${error.message}</div>
+                `;
+            }
+        }
+        
+        // ページ読み込み時に自動実行
+        window.onload = () => {
+            fetchDataLikeMainSystem();
+        };
+    </script>
+</body>
+</html> 

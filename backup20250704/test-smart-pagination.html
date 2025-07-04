@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>スマートページネーション テスト</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #e3f2fd;
+            border-radius: 4px;
+        }
+        .stat-item {
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1976d2;
+        }
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+        }
+        .pagination-controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .page-btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            margin: 0 2px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .page-btn.active {
+            background-color: #0056b3;
+        }
+        .page-btn:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .data-table th, .data-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .data-table th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .debug-panel {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        .debug-button {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 スマートページネーション テスト</h1>
+            <p>626件のデータを50件ずつ効率的に読み込みます</p>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-value" id="currentPageStat">1</div>
+                <div class="stat-label">現在ページ</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="totalPagesStat">?</div>
+                <div class="stat-label">総ページ数</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="totalRecordsStat">?</div>
+                <div class="stat-label">総レコード数</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="cacheHitsStat">0</div>
+                <div class="stat-label">キャッシュヒット</div>
+            </div>
+        </div>
+        
+        <div class="pagination-controls">
+            <button class="page-btn" id="prevPageBtn">← 前へ</button>
+            <div id="pageNumbers" style="display: inline-block; margin: 0 10px;">
+                <!-- ページ番号ボタン -->
+            </div>
+            <button class="page-btn" id="nextPageBtn">次へ →</button>
+        </div>
+        
+        <div id="loadingIndicator" class="loading" style="display: none;">
+            データを読み込み中...
+        </div>
+        
+        <div id="errorMessage" class="error" style="display: none;"></div>
+        
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>No.</th>
+                    <th>注文ID</th>
+                    <th>顧客名</th>
+                    <th>会社名</th>
+                    <th>カテゴリ</th>
+                    <th>注文日</th>
+                    <th>納品日</th>
+                    <th>編集状態</th>
+                </tr>
+            </thead>
+            <tbody id="dataTableBody">
+                <tr>
+                    <td colspan="8" class="loading">初期化中...</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <div class="debug-panel">
+            <h3>🔧 デバッグ機能</h3>
+            <button class="debug-button" onclick="showStats()">統計情報</button>
+            <button class="debug-button" onclick="clearCache()">キャッシュクリア</button>
+            <button class="debug-button" onclick="testAPI()">API接続テスト</button>
+            <button class="debug-button" onclick="forceReload()">強制リロード</button>
+            <div id="debugOutput" style="margin-top: 10px; padding: 10px; background: white; border-radius: 4px; font-family: monospace; font-size: 12px;"></div>
+        </div>
+    </div>
+    
+    <!-- 認証機能 -->
+    <script src="auth.js"></script>
+    
+    <!-- スマートページネーション -->
+    <script src="smart-pagination.js"></script>
+    
+    <script>
+        // テスト用の変数
+        let testStats = {
+            cacheHits: 0,
+            apiCalls: 0,
+            totalLoadTime: 0
+        };
+        
+        // テーブル更新関数（グローバル）
+        window.buildOrdersTable = function() {
+            const orders = window.ordersData || [];
+            const tbody = document.getElementById('dataTableBody');
+            
+            if (orders.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="loading">データがありません</td></tr>';
+                return;
+            }
+            
+            let html = '';
+            orders.forEach((order, index) => {
+                const rowNumber = ((window.getPaginationStats().currentPage - 1) * 50) + index + 1;
+                html += `
+                    <tr>
+                        <td>${rowNumber}</td>
+                        <td>${order.注文ID || order.orderId || '-'}</td>
+                        <td>${order.顧客名 || order.customer || '-'}</td>
+                        <td>${order.会社名 || order.companyName || '-'}</td>
+                        <td>${order.カテゴリ || order.category || '-'}</td>
+                        <td>${order.注文日 || order.orderDate || '-'}</td>
+                        <td>${order.納品日 || order.deliveryDate || '-'}</td>
+                        <td>${order._editable_info?.is_edited ? '編集済み' : '未編集'}</td>
+                    </tr>
+                `;
+            });
+            
+            tbody.innerHTML = html;
+            updateTestStats();
+        };
+        
+        // 統計情報更新
+        function updateTestStats() {
+            const stats = window.getPaginationStats ? window.getPaginationStats() : {};
+            
+            document.getElementById('currentPageStat').textContent = stats.currentPage || '?';
+            document.getElementById('totalPagesStat').textContent = stats.totalPages || '?';
+            document.getElementById('totalRecordsStat').textContent = stats.config?.ITEMS_PER_PAGE || '?';
+            
+            if (stats.cacheStats) {
+                document.getElementById('cacheHitsStat').textContent = stats.cacheStats.size || 0;
+            }
+        }
+        
+        // デバッグ機能
+        function showStats() {
+            const stats = window.getPaginationStats ? window.getPaginationStats() : {};
+            const output = document.getElementById('debugOutput');
+            output.innerHTML = `
+                <strong>📊 システム統計</strong><br>
+                現在ページ: ${stats.currentPage || '?'}<br>
+                総ページ数: ${stats.totalPages || '?'}<br>
+                キャッシュサイズ: ${stats.cacheStats?.size || 0}<br>
+                キャッシュページ: ${stats.cacheStats?.pages?.join(', ') || 'なし'}<br>
+                API呼び出し数: ${testStats.apiCalls}<br>
+                キャッシュヒット数: ${testStats.cacheHits}<br>
+                総読み込み時間: ${testStats.totalLoadTime.toFixed(0)}ms
+            `;
+        }
+        
+        function clearCache() {
+            if (window.pageCache) {
+                window.pageCache.clear();
+                testStats.cacheHits = 0;
+                testStats.apiCalls = 0;
+                testStats.totalLoadTime = 0;
+                updateTestStats();
+                document.getElementById('debugOutput').innerHTML = '✅ キャッシュをクリアしました';
+            }
+        }
+        
+        async function testAPI() {
+            const output = document.getElementById('debugOutput');
+            output.innerHTML = 'API接続テスト中...';
+            
+            try {
+                const response = await fetch('editable-orders-api.php?action=get_orders_count');
+                const result = await response.json();
+                
+                if (result.success) {
+                    output.innerHTML = `✅ API接続成功<br>総レコード数: ${result.data.total_records}件`;
+                } else {
+                    output.innerHTML = `❌ API接続失敗<br>エラー: ${result.message}`;
+                }
+            } catch (error) {
+                output.innerHTML = `❌ API接続エラー<br>エラー: ${error.message}`;
+            }
+        }
+        
+        function forceReload() {
+            if (window.showPage) {
+                const currentPage = window.getPaginationStats().currentPage || 1;
+                window.pageCache.clear();
+                window.showPage(currentPage);
+                document.getElementById('debugOutput').innerHTML = '🔄 強制リロードを実行しました';
+            }
+        }
+        
+        // 初期化
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🧪 スマートページネーションテスト開始');
+            
+            // 初期化
+            if (window.initializePagination) {
+                window.initializePagination().then(() => {
+                    console.log('✅ 初期化完了');
+                    updateTestStats();
+                });
+            } else {
+                console.error('❌ スマートページネーション関数が見つかりません');
+            }
+        });
+    </script>
+</body>
+</html> 
